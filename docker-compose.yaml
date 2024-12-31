@@ -3,6 +3,11 @@ version: '2.2'
 services:
   jobmanager:
     image: flink:latest
+    # network_mode: "host"
+    networks:
+      - flink-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8081:8081"  # Exposes Flink's web dashboard on the default port
     command: jobmanager
@@ -12,11 +17,18 @@ services:
         jobmanager.rpc.address: jobmanager
         jobmanager.rpc.port: 6123
         jobmanager.memory.process.size: 1600m
+        taskmanager.jvm-options: -Dfile.encoding=UTF-8 --add-opens java.base/java.util=ALL-UNNAMED
     volumes:
       - jobmanager-data:/opt/flink/log  # Mounts a volume for logs
+      - ./flink-jars:/opt/flink/userlib
 
   taskmanager:
     image: flink:latest
+    # network_mode: "host"
+    networks:
+      - flink-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - jobmanager
     command: taskmanager
@@ -29,7 +41,12 @@ services:
         taskmanager.memory.process.size: 1728m
     volumes:
       - taskmanager-data:/opt/flink/log  # Mounts a volume for logs
+      - ./flink-jars:/opt/flink/userlib
 
 volumes:
   jobmanager-data:  # Declares a volume for the JobManager logs
   taskmanager-data:  # Declares a volume for the TaskManager logs
+
+networks:
+  flink-network:
+    driver: bridge
